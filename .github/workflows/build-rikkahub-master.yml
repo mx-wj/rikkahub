@@ -36,39 +36,7 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
-          else
-            python3 -c 'import json; json.dump({
-              "project_info": {
-                "project_number": "000000000000",
-                "project_id": "dummy-rikkahub",
-                "storage_bucket": "dummy-rikkahub.appspot.com"
-              },
-              "client": [
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
-                    "android_client_info": {
-                      "package_name": "me.rerere.rikkahub"
-                    }
-                  },
-                  "api_key": [{"current_key": "dummy"}],
-                  "services": {}
-                },
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:000000000000:android:0000000000000001",
-                    "android_client_info": {
-                      "package_name": "me.rerere.rikkahub.debug"
-                    }
-                  },
-                  "api_key": [{"current_key": "dummy"}],
-                  "services": {}
-                }
-              ],
-              "configuration_version": "1"
-            }, open("app/google-services.json", "w"), indent=2)'
+          python3 -c "import os,json,pathlib;p=pathlib.Path('app/google-services.json');s=os.environ.get('GOOGLE_SERVICES_JSON');dummy={'project_info':{'project_number':'000000000000','project_id':'dummy-rikkahub','storage_bucket':'dummy-rikkahub.appspot.com'},'client':[{'client_info':{'mobilesdk_app_id':'1:000000000000:android:0000000000000000','android_client_info':{'package_name':'me.rerere.rikkahub'}},'api_key':[{'current_key':'dummy'}],'services':{}},{'client_info':{'mobilesdk_app_id':'1:000000000000:android:0000000000000001','android_client_info':{'package_name':'me.rerere.rikkahub.debug'}},'api_key':[{'current_key':'dummy'}],'services':{}}],'configuration_version':'1'};p.write_text(s if s else json.dumps(dummy,indent=2))"
 
       - name: Build debug APK
         run: |
