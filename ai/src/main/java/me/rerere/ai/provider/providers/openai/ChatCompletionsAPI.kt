@@ -413,7 +413,7 @@ class ChatCompletionsAPI(
 
         filteredMessages.forEachIndexed { index, message ->
             if (message.role == MessageRole.ASSISTANT) {
-                addAssistantMessages(message, index > lastUserMessageIndex)
+                addAssistantMessages(message, true)
             } else {
                 addNonAssistantMessage(message)
             }
