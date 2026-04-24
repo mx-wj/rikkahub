@@ -1,0 +1,93 @@
+name: Build RikkaHub master APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Verify DeepSeek V4 support exists
+        run: |
+          grep -R "DEEPSEEK_V4_PRO" -n ai/src/main/java/me/rerere/ai/registry/ModelRegistry.kt
+          grep -R "DEEPSEEK_V4_FLASH" -n ai/src/main/java/me/rerere/ai/registry/ModelRegistry.kt
+          grep -R "api.deepseek.com" -n ai/src/main/java/me/rerere/ai/provider/providers/openai/ChatCompletionsAPI.kt
+
+      - name: Prepare google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            cat > app/google-services.json <<'JSON'
+{
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "dummy-rikkahub",
+    "storage_bucket": "dummy-rikkahub.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "android_client_info": {
+          "package_name": "me.rerere.rikkahub"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "dummy"
+        }
+      ],
+      "services": {}
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000001",
+        "android_client_info": {
+          "package_name": "me.rerere.rikkahub.debug"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "dummy"
+        }
+      ],
+      "services": {}
+    }
+  ],
+  "configuration_version": "1"
+}
+JSON
+          fi
+
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rikkahub-master-debug-apk
+          path: app/build/outputs/apk/**/*.apk
