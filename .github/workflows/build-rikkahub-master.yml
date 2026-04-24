@@ -39,8 +39,7 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
           else
-            cat > app/google-services.json <<'JSON'
-            {
+            python3 -c 'import json; json.dump({
               "project_info": {
                 "project_number": "000000000000",
                 "project_id": "dummy-rikkahub",
@@ -54,11 +53,7 @@ jobs:
                       "package_name": "me.rerere.rikkahub"
                     }
                   },
-                  "api_key": [
-                    {
-                      "current_key": "dummy"
-                    }
-                  ],
+                  "api_key": [{"current_key": "dummy"}],
                   "services": {}
                 },
                 {
@@ -68,18 +63,12 @@ jobs:
                       "package_name": "me.rerere.rikkahub.debug"
                     }
                   },
-                  "api_key": [
-                    {
-                      "current_key": "dummy"
-                    }
-                  ],
+                  "api_key": [{"current_key": "dummy"}],
                   "services": {}
                 }
               ],
               "configuration_version": "1"
-            }
-            JSON
-          fi
+            }, open("app/google-services.json", "w"), indent=2)'
 
       - name: Build debug APK
         run: |
