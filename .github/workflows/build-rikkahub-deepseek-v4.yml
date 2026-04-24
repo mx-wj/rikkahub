@@ -1,0 +1,101 @@
+name: Build RikkaHub DeepSeek V4 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'ai/**'
+      - 'app/**'
+      - 'common/**'
+      - 'document/**'
+      - 'highlight/**'
+      - 'search/**'
+      - 'tts/**'
+      - 'web/**'
+      - 'gradle/**'
+      - '.github/workflows/build-rikkahub-deepseek-v4.yml'
+      - 'scripts/patch_deepseek_v4.py'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - 'libs.versions.toml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create google-services.json
+        shell: bash
+        run: |
+          mkdir -p app
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          else
+            cat > app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "0",
+              "project_id": "rikkahub-local-build",
+              "storage_bucket": "rikkahub-local-build.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:0:android:debugmain",
+                  "android_client_info": { "package_name": "me.rerere.rikkahub" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "dummy" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              },
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:0:android:debugsuffix",
+                  "android_client_info": { "package_name": "me.rerere.rikkahub.debug" }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "dummy" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          fi
+
+      - name: Patch DeepSeek V4 support
+        run: python3 scripts/patch_deepseek_v4.py
+
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rikkahub-deepseek-v4-debug-apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
